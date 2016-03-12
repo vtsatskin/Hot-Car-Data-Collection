@@ -1,12 +1,21 @@
 #!/usr/bin/env python3
 
-print ('What type of subject is this?')
-print ('\t 1: Person')
-print ('\t 2: Child')
-print ('\t 3: Pet')
-subject_type = input('Enter subject type number [1]: ')
+import click
 
-if subject_type
-    subject_type = int(subject_type)
-else
-    subject_type = 1
+@click.command()
+@click.option(
+    '--subject-type',
+    prompt='What type of subject? (none/adult/child/pet)',
+    type=click.Choice(['none', 'adult', 'child', 'pet']),
+    default='adult')
+@click.option(
+    '--car-id',
+    prompt='What is the car id?',
+    type=int,
+    default=1)
+
+def get_session_info(subject_type, car_id):
+    click.echo('Session info collected')
+
+if __name__ == '__main__':
+    get_session_info()
