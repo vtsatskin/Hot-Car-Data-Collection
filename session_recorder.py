@@ -1,6 +1,15 @@
 #!/usr/bin/env python3
 
 import click
+import sqlite3
+import signal
+import sys
+import sched
+import time
+
+DATABSE_NAME = 'sessions.db'
+conn = sqlite3.connect(DATABSE_NAME)
+cursor = conn.cursor()
 
 @click.command()
 @click.option(
@@ -16,6 +25,32 @@ import click
 
 def get_session_info(subject_type, car_id):
     click.echo('Session info collected')
+    blah = raw_input('\nPress enter to start collecting data\n')
+    click.echo('Collecting data...')
+    collect_data(subject_type, car_id)
+
+def collect_data(subject_type, car_id):
+    signal.signal(signal.SIGINT, end_collection)
+
+    s = sched.scheduler(time.time, time.sleep)
+    s.enter(1, 1, collect_sample, (s,conn,cursor))
+    s.run()
+
+def collect_sample(sc,conn,cursor):
+    click.echo('Recording sample')
+    cursor.execute("INSERT INTO project VALUES ('2016-03-12','human','no','25', 'No')")
+    conn.commit()
+    sc.enter(1, 1, collect_sample, (sc,conn,cursor))
+
+def end_collection(signal, frame):
+    print('Data collection ended')
+    conn.close()
+    sys.exit(0)
+
+def initdb():
+    c.execute('''CREATE TABLE project
+                 (date_text, type, movement, temp, dangerous)''')
+    click.echo('Initialized the database')
 
 if __name__ == '__main__':
     get_session_info()
