@@ -9,11 +9,14 @@ import time
 import skimage
 import uuid
 import datetime
+import Adafruit_DHT
 from pylepton import Lepton
 
 DATABSE_NAME = 'sessions.db'
 conn = sqlite3.connect(DATABSE_NAME)
 cursor = conn.cursor()
+sensor = Adafruit_DHT.DHT22
+pin = 4
 
 @click.group()
 def cli():
@@ -61,7 +64,12 @@ def collect_sample(sc,conn,cursor,session_id,subject_type,car_id):
         frame,_ = l.capture()
         skimage.io.imsave(image_name, frame)
 
-    cursor.execute("INSERT INTO project VALUES (?, ?, ?, ?, ?, ?)",(session_id, now, subject_type, car_id, 0.0, image_name))
+    _, temperature = Adafruit_DHT.read(sensor, pin)
+
+    if temperature is None:
+	    click.echo('Failed to get temperature reading.')
+
+    cursor.execute("INSERT INTO project VALUES (?, ?, ?, ?, ?, ?)",(session_id, now, subject_type, car_id, temperature, image_name))
     conn.commit()
     sc.enter(1, 1, collect_sample, (sc,conn,cursor))
 
