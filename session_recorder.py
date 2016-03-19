@@ -11,7 +11,17 @@ DATABSE_NAME = 'sessions.db'
 conn = sqlite3.connect(DATABSE_NAME)
 cursor = conn.cursor()
 
-@click.command()
+@click.group()
+def cli():
+    pass
+
+@cli.command()
+def initdb():
+    c.execute('''CREATE TABLE project
+                 (date_text, type, movement, temp, dangerous)''')
+    click.echo('Initialized the database')
+
+@cli.command()
 @click.option(
     '--subject-type',
     prompt='What type of subject? (none/adult/child/pet)',
@@ -22,8 +32,7 @@ cursor = conn.cursor()
     prompt='What is the car id?',
     type=int,
     default=1)
-
-def get_session_info(subject_type, car_id):
+def record(subject_type, car_id):
     click.echo('Session info collected')
     blah = raw_input('\nPress enter to start collecting data\n')
     click.echo('Collecting data...')
@@ -47,10 +56,5 @@ def end_collection(signal, frame):
     conn.close()
     sys.exit(0)
 
-def initdb():
-    c.execute('''CREATE TABLE project
-                 (date_text, type, movement, temp, dangerous)''')
-    click.echo('Initialized the database')
-
 if __name__ == '__main__':
-    get_session_info()
+    cli()

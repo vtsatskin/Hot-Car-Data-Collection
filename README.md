@@ -16,9 +16,15 @@ pip install -r requirements.txt
 
 ## Running
 
+If you don't already have a database initialized, you will have to run the following:
+
+```
+python ./session_recorder.py initdb
+```
+
 The easiest way to start a data collection is to run the command with no parameters. It will prompt you to enter the session information.
 ```
-python ./session_recorder.py
+python ./session_recorder.py record
 ```
 
 You'll get the following output:
@@ -31,11 +37,11 @@ However, if you would like to put the information in as command line arguments, 
 
 
 ```
-python ./session_recorder.py --subject-type adult --car-id 1
+python ./session_recorder.py record --subject-type adult --car-id 1
 ```
 
 You can find help about the command line arguments with:
 
 ```
-python ./session_recorder.py --help
+python ./session_recorder.py <command_name> --help
 ```
