@@ -71,7 +71,7 @@ def collect_sample(sc,conn,cursor,session_id,subject_type,car_id):
 
     cursor.execute("INSERT INTO readings VALUES (?, ?, ?, ?, ?, ?)",(session_id, now, subject_type, car_id, temperature, image_name))
     conn.commit()
-    sc.enter(1, 1, collect_sample, (sc,conn,cursor))
+    sc.enter(1, 1, collect_sample, (sc,conn,cursor,session_id,subject_type,car_id))
 
 def end_collection(signal, frame):
     click.echo('Data collection ended')
