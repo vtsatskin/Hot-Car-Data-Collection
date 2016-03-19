@@ -69,7 +69,7 @@ def collect_sample(sc,conn,cursor,session_id,subject_type,car_id):
     if temperature is None:
 	    click.echo('Failed to get temperature reading.')
 
-    cursor.execute("INSERT INTO project VALUES (?, ?, ?, ?, ?, ?)",(session_id, now, subject_type, car_id, temperature, image_name))
+    cursor.execute("INSERT INTO readings VALUES (?, ?, ?, ?, ?, ?)",(session_id, now, subject_type, car_id, temperature, image_name))
     conn.commit()
     sc.enter(1, 1, collect_sample, (sc,conn,cursor))
 
