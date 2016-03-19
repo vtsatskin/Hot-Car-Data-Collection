@@ -10,6 +10,7 @@ import uuid
 import datetime
 import Adafruit_DHT
 import cv2
+import numpy as np
 from pylepton import Lepton
 from skimage import io
 
