@@ -74,7 +74,7 @@ def collect_sample(sc,conn,cursor,session_id,subject_type,car_id):
     sc.enter(1, 1, collect_sample, (sc,conn,cursor))
 
 def end_collection(signal, frame):
-    print('Data collection ended')
+    click.echo('Data collection ended')
     conn.close()
     sys.exit(0)
 
