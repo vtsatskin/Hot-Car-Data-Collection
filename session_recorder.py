@@ -6,6 +6,10 @@ import signal
 import sys
 import sched
 import time
+import skimage
+import uuid
+import datetime
+from pylepton import Lepton
 
 DATABSE_NAME = 'sessions.db'
 conn = sqlite3.connect(DATABSE_NAME)
@@ -17,8 +21,8 @@ def cli():
 
 @cli.command()
 def initdb():
-    c.execute('''CREATE TABLE project
-                 (date_text, type, movement, temp, dangerous)''')
+    cursor.execute('''CREATE TABLE readings
+                 (session_id text, date date, subject_type integer, car_id integer, temp real, image_name text)''')
     click.echo('Initialized the database')
 
 @cli.command()
@@ -41,13 +45,23 @@ def record(subject_type, car_id):
 def collect_data(subject_type, car_id):
     signal.signal(signal.SIGINT, end_collection)
 
+    session_id = str(uuid.uuid4())
+
     s = sched.scheduler(time.time, time.sleep)
-    s.enter(1, 1, collect_sample, (s,conn,cursor))
+    s.enter(1, 1, collect_sample, (s,conn,cursor,session_id,subject_type,car_id))
     s.run()
 
-def collect_sample(sc,conn,cursor):
+def collect_sample(sc,conn,cursor,session_id,subject_type,car_id):
     click.echo('Recording sample')
-    cursor.execute("INSERT INTO project VALUES ('2016-03-12','human','no','25', 'No')")
+
+    now = datetime.datetime.now()
+    image_name = '{}_{}.png'.format(session_id, now)
+
+    with Lepton() as l:
+        frame,_ = l.capture()
+        skimage.io.imsave(image_name, frame)
+
+    cursor.execute("INSERT INTO project VALUES (?, ?, ?, ?, ?, ?)",(session_id, now, subject_type, car_id, 0.0, image_name))
     conn.commit()
     sc.enter(1, 1, collect_sample, (sc,conn,cursor))
 
