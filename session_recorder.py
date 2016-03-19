@@ -9,6 +9,7 @@ import time
 import uuid
 import datetime
 import Adafruit_DHT
+import cv2
 from pylepton import Lepton
 from skimage import io
 
@@ -62,7 +63,9 @@ def collect_sample(sc,conn,cursor,session_id,subject_type,car_id):
 
     with Lepton() as l:
         frame,_ = l.capture()
-        io.imsave('image_data/{}'.format(image_name), frame)
+        cv2.normalize(frame, frame, 0, 65535, cv2.NORM_MINMAX) # extend contrast
+        np.right_shift(frame, 8, frame) # fit data into 8 bits
+        cv2.imwrite('image_data/{}'.format(image_name), np.uint8(frame)) # write it!
 
     _, temperature = Adafruit_DHT.read(sensor, pin)
 
