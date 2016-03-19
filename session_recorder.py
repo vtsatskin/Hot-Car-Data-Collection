@@ -6,11 +6,11 @@ import signal
 import sys
 import sched
 import time
-import skimage
 import uuid
 import datetime
 import Adafruit_DHT
 from pylepton import Lepton
+from skimage import io
 
 DATABSE_NAME = 'sessions.db'
 conn = sqlite3.connect(DATABSE_NAME)
@@ -62,7 +62,7 @@ def collect_sample(sc,conn,cursor,session_id,subject_type,car_id):
 
     with Lepton() as l:
         frame,_ = l.capture()
-        skimage.io.imsave(image_name, frame)
+        io.imsave('image_data/{}', image_name, frame)
 
     _, temperature = Adafruit_DHT.read(sensor, pin)
 
