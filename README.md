@@ -8,6 +8,7 @@ A set of scripts to help collect data for our Third Year design project
 ## Setup
 
 ```
+pip install https://github.com/adafruit/Adafruit_Python_DHT/archive/master.zip
 pip install virtualenv
 virtualenv venv
 . venv/bin/activate
