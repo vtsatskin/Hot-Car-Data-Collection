@@ -13,6 +13,7 @@ import cv2
 import numpy as np
 from pylepton import Lepton
 from skimage import io
+from sklearn.externals import joblib
 
 DATABSE_NAME = 'sessions.db'
 conn = sqlite3.connect(DATABSE_NAME)
@@ -62,11 +63,8 @@ def collect_sample(sc,conn,cursor,session_id,subject_type,car_id):
     now = datetime.datetime.now()
     image_name = '{}_{}.png'.format(session_id, now)
 
-    with Lepton() as l:
-        frame,_ = l.capture()
-        cv2.normalize(frame, frame, 0, 65535, cv2.NORM_MINMAX) # extend contrast
-        np.right_shift(frame, 8, frame) # fit data into 8 bits
-        cv2.imwrite('image_data/{}'.format(image_name), np.uint8(frame)) # write it!
+    frame = read_image()
+    cv2.imwrite('image_data/{}'.format(image_name), np.uint8(frame)) # write it!
 
     _, temperature = Adafruit_DHT.read(sensor, pin)
 
@@ -76,6 +74,34 @@ def collect_sample(sc,conn,cursor,session_id,subject_type,car_id):
     cursor.execute("INSERT INTO readings VALUES (?, ?, ?, ?, ?, ?)",(session_id, now, subject_type, car_id, temperature, image_name))
     conn.commit()
     sc.enter(1, 1, collect_sample, (sc,conn,cursor,session_id,subject_type,car_id))
+
+@cli.command()
+@click.option(
+    '--model-file',
+    prompt='What is the model file?',
+    default='classifier.pkl')
+@click.option(
+    '--rate',
+    prompt='How many seconds should there be between pictures?',
+    type=int,
+    default=1)
+def classify(model_file, rate):
+    s = sched.scheduler(time.time, time.sleep)
+    clf = joblib.load(model_file)
+    s.enter(rate, 1, classify_image, (clf, rate))
+    s.run()
+
+def classify_image(clf, rate):
+    frame = read_image()
+    click.echo(clf.predict(frame.flatten().reshape(1, -1)))
+    sc.enter(rate, 1, classify_image, (clf))
+
+def read_image():
+    with Lepton() as l:
+        frame,_ = l.capture()
+        cv2.normalize(frame, frame, 0, 65535, cv2.NORM_MINMAX) # extend contrast
+        np.right_shift(frame, 8, frame) # fit data into 8 bits
+    return frame
 
 def end_collection(signal, frame):
     click.echo('Data collection ended')
