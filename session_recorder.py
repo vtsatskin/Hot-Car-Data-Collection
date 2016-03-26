@@ -88,13 +88,13 @@ def collect_sample(sc,conn,cursor,session_id,subject_type,car_id):
 def classify(model_file, rate):
     s = sched.scheduler(time.time, time.sleep)
     clf = joblib.load(model_file)
-    s.enter(rate, 1, classify_image, (clf, rate))
+    s.enter(rate, 1, classify_image, (s, clf, rate))
     s.run()
 
-def classify_image(clf, rate):
+def classify_image(sc, clf, rate):
     frame = read_image()
     click.echo(clf.predict(frame.flatten().reshape(1, -1)))
-    sc.enter(rate, 1, classify_image, (clf))
+    sc.enter(rate, 1, classify_image, (sc, clf, rate))
 
 def read_image():
     with Lepton() as l:
