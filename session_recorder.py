@@ -85,16 +85,28 @@ def collect_sample(sc,conn,cursor,session_id,subject_type,car_id):
     prompt='How many seconds should there be between pictures?',
     type=int,
     default=1)
-def classify(model_file, rate):
+@click.option(
+    '--sliding-window',
+    prompt='Use sliding window',
+    is_flag=True,
+    default=False)
+def classify(model_file, rate, sliding_window):
     s = sched.scheduler(time.time, time.sleep)
     clf = joblib.load(model_file)
-    s.enter(rate, 1, classify_image, (s, clf, rate))
+    s.enter(rate, 1, classify_image, (s, clf, rate, sliding_window))
     s.run()
 
-def classify_image(sc, clf, rate):
+def classify_image(sc, clf, rate, sliding_window):
     frame = read_image()
-    click.echo(clf.predict(frame.flatten().reshape(1, -1)))
-    sc.enter(rate, 1, classify_image, (sc, clf, rate))
+    if sliding_window:
+        sections = list(slide(frame, (26,18), (5,5)))
+        predictions = clf.predict([s.flatten() for s in sections])
+        click.echo(sum(predictions))
+
+    else:
+        click.echo(clf.predict(frame.flatten().reshape(1, -1)))
+
+    sc.enter(rate, 1, classify_image, (sc, clf, rate, sliding_window))
 
 def read_image():
     with Lepton() as l:
@@ -102,6 +114,19 @@ def read_image():
         cv2.normalize(frame, frame, 0, 65535, cv2.NORM_MINMAX) # extend contrast
         np.right_shift(frame, 8, frame) # fit data into 8 bits
     return frame
+
+def slide(img, size, stride):
+    h = size[0]
+    w = size[1]
+    dy = stride[0]
+    dx = stride[1]
+
+    x_range = list(range(0, img.shape[1], dx))
+    y_range = list(range(0, img.shape[0], dy))
+    for y in y_range:
+        for x in x_range:
+            if (y+h) < img.shape[0] and (x+w) < img.shape[1]:
+                yield img[y:y+h,x:x+w]
 
 def end_collection(signal, frame):
     click.echo('Data collection ended')
