@@ -11,9 +11,11 @@ import datetime
 import Adafruit_DHT
 import cv2
 import numpy as np
+import matplotlib.pyplot as plt
 from pylepton import Lepton
 from skimage import io
 from sklearn.externals import joblib
+from skimage.draw import polygon
 
 DATABSE_NAME = 'sessions.db'
 conn = sqlite3.connect(DATABSE_NAME)
@@ -90,23 +92,41 @@ def collect_sample(sc,conn,cursor,session_id,subject_type,car_id):
     prompt='Use sliding window',
     is_flag=True,
     default=False)
-def classify(model_file, rate, sliding_window):
+@click.option(
+    '--show-plot',
+    prompt='Show plots',
+    is_flag=True,
+    default=True)
+def classify(model_file, rate, sliding_window, show_plot):
     s = sched.scheduler(time.time, time.sleep)
     clf = joblib.load(model_file)
-    s.enter(rate, 1, classify_image, (s, clf, rate, sliding_window))
+
+    if show_plot:
+        plt.figure()
+        plt.ion()
+        plt.show()
+
+    s.enter(rate, 1, classify_image, (s, clf, rate, sliding_window, show_plot))
     s.run()
 
-def classify_image(sc, clf, rate, sliding_window):
+def classify_image(sc, clf, rate, sliding_window, show_plot):
     frame = read_image()
     if sliding_window:
         sections = list(slide(frame, (26,18), (5,5)))
         predictions = clf.predict([s.flatten() for s in sections])
-        click.echo(sum(predictions))
+
+        if show_plot:
+            for i in predictions:
+                if i == 1:
+                    rr, cc = to_rect(i, frame.shape, (26,18), (5,5))
+                    frame[rr, cc] = 0
+
+            plt.imshow(frame)
 
     else:
         click.echo(clf.predict(frame.flatten().reshape(1, -1)))
 
-    sc.enter(rate, 1, classify_image, (sc, clf, rate, sliding_window))
+    sc.enter(rate, 1, classify_image, (sc, clf, rate, sliding_window, show_plot))
 
 def read_image():
     with Lepton() as l:
@@ -127,6 +147,14 @@ def slide(img, size, stride):
         for x in x_range:
             if (y+h) < img.shape[0] and (x+w) < img.shape[1]:
                 yield img[y:y+h,x:x+w]
+
+def to_rect(i, img_shape, size, stride):
+    row = int(stride[1] * i / img_shape[1])
+    col = (stride[1] * i) % img_shape[1]
+
+    y = [row, row, row+size[0], row+size[0]]
+    x = [col, col+size[1], col, col+size[1]]
+    return polygon(y, x)
 
 def end_collection(signal, frame):
     click.echo('Data collection ended')
