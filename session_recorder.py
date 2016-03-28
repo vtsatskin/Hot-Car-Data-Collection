@@ -101,7 +101,7 @@ def collect_sample(sc,conn,cursor,session_id,subject_type,car_id):
 @click.option(
     '--rotate',
     prompt='Rotation of frame counter-clockwise in degrees',
-    default=0.0
+    default=0.0,
     type=float)
 def classify(model_file, rate, sliding_window, show_plot, rotate):
     s = sched.scheduler(time.time, time.sleep)
