@@ -110,7 +110,6 @@ def classify(model_file, rate, sliding_window, show_plot, rotate):
     if show_plot:
         plt.figure()
         plt.ion()
-        plt.show()
 
     s.enter(rate, 1, classify_image, (s, clf, rate, sliding_window, show_plot, rotate))
     s.run()
@@ -132,6 +131,7 @@ def classify_image(sc, clf, rate, sliding_window, show_plot, rotate):
                     frame[rr, cc] = 0
 
             plt.imshow(frame)
+            plt.show()
 
     else:
         click.echo(clf.predict(frame.flatten().reshape(1, -1)))
