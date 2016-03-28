@@ -16,6 +16,7 @@ from pylepton import Lepton
 from skimage import io
 from sklearn.externals import joblib
 from skimage.draw import polygon
+from skimage.transform import rotate as skrotate
 
 DATABSE_NAME = 'sessions.db'
 conn = sqlite3.connect(DATABSE_NAME)
@@ -97,7 +98,12 @@ def collect_sample(sc,conn,cursor,session_id,subject_type,car_id):
     prompt='Show plots',
     is_flag=True,
     default=True)
-def classify(model_file, rate, sliding_window, show_plot):
+@click.option(
+    '--rotate',
+    prompt='Rotation of frame counter-clockwise in degrees',
+    default=0.0
+    type=float)
+def classify(model_file, rate, sliding_window, show_plot, rotate):
     s = sched.scheduler(time.time, time.sleep)
     clf = joblib.load(model_file)
 
@@ -106,11 +112,15 @@ def classify(model_file, rate, sliding_window, show_plot):
         plt.ion()
         plt.show()
 
-    s.enter(rate, 1, classify_image, (s, clf, rate, sliding_window, show_plot))
+    s.enter(rate, 1, classify_image, (s, clf, rate, sliding_window, show_plot, rotate))
     s.run()
 
-def classify_image(sc, clf, rate, sliding_window, show_plot):
+def classify_image(sc, clf, rate, sliding_window, show_plot, rotate):
     frame = read_image()
+
+    if rotate:
+        frame = skrotate(frame, rotate)
+
     if sliding_window:
         sections = list(slide(frame, (26,18), (5,5)))
         predictions = clf.predict([s.flatten() for s in sections])
@@ -126,7 +136,7 @@ def classify_image(sc, clf, rate, sliding_window, show_plot):
     else:
         click.echo(clf.predict(frame.flatten().reshape(1, -1)))
 
-    sc.enter(rate, 1, classify_image, (sc, clf, rate, sliding_window, show_plot))
+    sc.enter(rate, 1, classify_image, (sc, clf, rate, sliding_window, show_plot, rotate))
 
 def read_image():
     with Lepton() as l:
