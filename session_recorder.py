@@ -108,7 +108,6 @@ def classify(model_file, rate, sliding_window, show_plot, rotate):
     clf = joblib.load(model_file)
 
     if show_plot:
-        plt.figure()
         plt.ion()
 
     s.enter(rate, 1, classify_image, (s, clf, rate, sliding_window, show_plot, rotate))
@@ -131,7 +130,7 @@ def classify_image(sc, clf, rate, sliding_window, show_plot, rotate):
                     frame[rr, cc] = 0
 
             plt.imshow(frame)
-            plt.show()
+            plt.draw()
 
     else:
         click.echo(clf.predict(frame.flatten().reshape(1, -1)))
@@ -143,7 +142,7 @@ def read_image():
         frame,_ = l.capture()
         cv2.normalize(frame, frame, 0, 65535, cv2.NORM_MINMAX) # extend contrast
         np.right_shift(frame, 8, frame) # fit data into 8 bits
-    return frame
+    return frame[:,:,0]
 
 def slide(img, size, stride):
     h = size[0]
@@ -162,8 +161,8 @@ def to_rect(i, img_shape, size, stride):
     row = int(stride[1] * i / img_shape[1])
     col = (stride[1] * i) % img_shape[1]
 
-    y = [row, row, row+size[0], row+size[0]]
-    x = [col, col+size[1], col, col+size[1]]
+    y = np.array([row, row, row+size[0], row+size[0]])
+    x = np.array([col, col+size[1], col, col+size[1]])
     return polygon(y, x)
 
 def end_collection(signal, frame):
