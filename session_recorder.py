@@ -12,6 +12,7 @@ import Adafruit_DHT
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.patches as patches
 from pylepton import Lepton
 from skimage import io
 from sklearn.externals import joblib
@@ -107,13 +108,16 @@ def classify(model_file, rate, sliding_window, show_plot, rotate):
     s = sched.scheduler(time.time, time.sleep)
     clf = joblib.load(model_file)
 
+    ax = None
     if show_plot:
         plt.ion()
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
 
-    s.enter(rate, 1, classify_image, (s, clf, rate, sliding_window, show_plot, rotate))
+    s.enter(rate, 1, classify_image, (s, clf, rate, sliding_window, show_plot, rotate, ax))
     s.run()
 
-def classify_image(sc, clf, rate, sliding_window, show_plot, rotate):
+def classify_image(sc, clf, rate, sliding_window, show_plot, rotate, ax):
     frame = read_image()
 
     if rotate:
@@ -121,21 +125,32 @@ def classify_image(sc, clf, rate, sliding_window, show_plot, rotate):
 
     if sliding_window:
         sections = list(slide(frame, (26,18), (5,5)))
-        predictions = clf.predict([s.flatten() for s in sections])
 
         if show_plot:
-            for i in predictions:
-                if i == 1:
-                    rr, cc = to_rect(i, frame.shape, (26,18), (5,5))
-                    frame[rr, cc] = 0
-
+            ax.clear()
             plt.imshow(frame)
+
+        for coord, img in sections:
+            if clf.predict(img.flatten().reshape(1, -1)) == 1:
+                click.echo(coord)
+
+                if show_plot:
+                    ax.add_patch(
+                        patches.Rectangle(
+                            coord,
+                            18,
+                            26,
+                            fill=False
+                        )
+                    )
+
+        if show_plot:
             plt.draw()
 
     else:
         click.echo(clf.predict(frame.flatten().reshape(1, -1)))
 
-    sc.enter(rate, 1, classify_image, (sc, clf, rate, sliding_window, show_plot, rotate))
+    sc.enter(rate, 1, classify_image, (sc, clf, rate, sliding_window, show_plot, rotate, ax))
 
 def read_image():
     with Lepton() as l:
@@ -155,15 +170,7 @@ def slide(img, size, stride):
     for y in y_range:
         for x in x_range:
             if (y+h) < img.shape[0] and (x+w) < img.shape[1]:
-                yield img[y:y+h,x:x+w]
-
-def to_rect(i, img_shape, size, stride):
-    row = int(stride[1] * i / img_shape[1])
-    col = (stride[1] * i) % img_shape[1]
-
-    y = np.array([row, row, row+size[0], row+size[0]])
-    x = np.array([col, col+size[1], col, col+size[1]])
-    return polygon(y, x)
+                yield ((x,y), img[y:y+h,x:x+w])
 
 def end_collection(signal, frame):
     click.echo('Data collection ended')
